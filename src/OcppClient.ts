@@ -64,6 +64,10 @@ export class OcppClient extends Client {
     super.connect(centralSystemUrl, headers);
   }
 
+  close() {
+    super.close();
+  }
+
   on(event: 'CancelReservation', listener: (request: CancelReservationRequest, cb: (response: CancelReservationResponse) => void) => void): this;
   on(event: 'ChangeAvailability', listener: (request: ChangeAvailabilityRequest, cb: (response: ChangeAvailabilityResponse) => void) => void): this;
   on(event: 'ChangeConfiguration', listener: (request: ChangeConfigurationRequest, cb: (response: ChangeConfigurationResponse) => void) => void): this;

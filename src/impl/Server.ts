@@ -89,7 +89,7 @@ export class Server extends EventEmitter {
   }
 
   protected close() {
-    this.server?.close();
+    if (this.server) this.server.close();
   }
 
   static getCpIdFromUrl(url: string | undefined): string | undefined {
