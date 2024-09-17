@@ -8,6 +8,10 @@ export class OcppServer extends Server {
     super.listen(port, options);
   }
 
+  close() {
+    super.close();
+  }
+
   on(event: 'authorization', listener: (cpId: string, req: IncomingMessage, cb: (err?: Error) => void) => void): this;
   on(event: 'connection', listener: (client: OcppClientConnection) => void): this;
   on(event: string | symbol, listener: (...args: any[]) => void) {

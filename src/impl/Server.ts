@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 import WebSocket, { WebSocketServer } from 'ws';
 import { SecureContextOptions } from 'tls';
 import { createServer as createHttpsServer } from 'https';
-import { createServer as createHttpServer, IncomingMessage } from 'http';
+import { createServer as createHttpServer, IncomingMessage, Server as httpServer } from 'http';
 import stream from 'node:stream';
 import { OCPP_PROTOCOL_1_6 } from './schemas';
 import { Client } from './Client';
@@ -10,16 +10,15 @@ import { OcppClientConnection } from '../OcppClientConnection';
 import { Protocol } from './Protocol';
 
 export class Server extends EventEmitter {
-  private server: WebSocket.Server | null = null;
+  private server: httpServer | undefined;
 
   private clients: Array<Client> = [];
 
   protected listen(port = 9220, options?: SecureContextOptions) {
-    let server;
     if (options) {
-      server = createHttpsServer(options || {});
+      this.server = createHttpsServer(options || {});
     } else {
-      server = createHttpServer();
+      this.server = createHttpServer();
     }
 
     const wss = new WebSocketServer({
@@ -34,7 +33,7 @@ export class Server extends EventEmitter {
 
     wss.on('connection', (ws, req) => this.onNewConnection(ws, req));
 
-    server.on('upgrade', (req: IncomingMessage, socket: stream.Duplex, head: Buffer) => {
+    this.server.on('upgrade', (req: IncomingMessage, socket: stream.Duplex, head: Buffer) => {
       const cpId = Server.getCpIdFromUrl(req.url);
       if (!cpId) {
         socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
@@ -57,7 +56,7 @@ export class Server extends EventEmitter {
       }
     });
 
-    server.listen(port);
+    this.server.listen(port);
   }
 
   private onNewConnection(socket: WebSocket, req: IncomingMessage) {
@@ -87,6 +86,10 @@ export class Server extends EventEmitter {
     });
     this.clients.push(client);
     this.emit('connection', client);
+  }
+
+  protected close() {
+    this.server?.close();
   }
 
   static getCpIdFromUrl(url: string | undefined): string | undefined {
