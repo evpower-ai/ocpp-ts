@@ -7,7 +7,10 @@
   "scripts": {
     "compileSchema": "npx ts-node scripts/compileSchemas.ts",
     "prepublish": "npm run build",
-    "build": "rm -rf ./dist/ && tsc",
+    "prebuild": "npm run clean:win && npm run clean:linux",
+    "clean:win": "node -e \"if (process.platform === 'win32') process.exit(1)\" || , if exist build rmdir /Q /S dist",
+    "clean:linux": "node -e \"if (process.platform !== 'win32') process.exit(1)\" || rm -rf dist",
+    "build": "tsc",
     "test": "jest"
   },
   "keywords": [
