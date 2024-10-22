@@ -62,10 +62,7 @@ export class Client extends EventEmitter {
   }
 
   public close() {
-    // console.log('Client close', this.ws);
-    if (this.ws) {
-      console.log('Closing WS', this.ws);
-      this.ws.close()
-    }    
+    console.log('Client close');
+    this.ws?.close()
    }
 }
