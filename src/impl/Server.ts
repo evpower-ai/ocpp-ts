@@ -11,8 +11,7 @@ import { Protocol } from './Protocol';
 
 export class Server extends EventEmitter {
   private server: httpServer | undefined;
-  private ws: WebSocket | undefined;
-  private wss: WebSocketServer | undefined;
+
   private clients: Array<Client> = [];
 
   protected listen(port = 9220, options?: SecureContextOptions) {
@@ -22,7 +21,7 @@ export class Server extends EventEmitter {
       this.server = createHttpServer();
     }
 
-   this.wss = new WebSocketServer({
+   const wss = new WebSocketServer({
       noServer: true,
       handleProtocols: (protocols: Set<string>) => {
         if (protocols.has(OCPP_PROTOCOL_1_6)) {
@@ -32,7 +31,7 @@ export class Server extends EventEmitter {
       },
     });
 
-    this.wss.on('connection', (ws, req) => this.onNewConnection(ws, req));
+    wss.on('connection', (ws, req) => this.onNewConnection(ws, req));
 
     this.server.on('upgrade', (req: IncomingMessage, socket: stream.Duplex, head: Buffer) => {
       const cpId = Server.getCpIdFromUrl(req.url);
@@ -45,14 +44,14 @@ export class Server extends EventEmitter {
             socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
             socket.destroy();
           } else {
-            this.wss?.handleUpgrade(req, socket, head, (ws) => {
-              this.wss?.emit('connection', ws, req);
+            wss.handleUpgrade(req, socket, head, (ws) => {
+              wss.emit('connection', ws, req);
             });
           }
         });
       } else {
-        this.wss?.handleUpgrade(req, socket, head, (ws) => {
-          this.wss?.emit('connection', ws, req);
+        wss.handleUpgrade(req, socket, head, (ws) => {
+          wss.emit('connection', ws, req);
         });
       }
     });
@@ -87,19 +86,11 @@ export class Server extends EventEmitter {
     });
     this.clients.push(client);
     this.emit('connection', client);
-    this.ws=socket;
   }
 
   protected close() {
-      this.wss?.close();
-      this.ws?.close();
       this.server?.close();
-      console.log('closing server... deleting all clients...');
-      this.clients.forEach((client) => {
-        console.log('closing client...');
-        client.close();
-      });
-    
+      this.clients.forEach((client) => client.close());
   }
 
   static getCpIdFromUrl(url: string | undefined): string | undefined {
