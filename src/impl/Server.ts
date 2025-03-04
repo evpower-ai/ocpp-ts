@@ -31,7 +31,7 @@ export class Server extends EventEmitter {
       },
     });
 
-    wss.on('connection', (ws, req) => this.onNewConnection(ws, req));
+    wss.on('connection', (ws, req) => this.onNewConnection2(ws, req));
 
     this.server.on('upgrade', (req: IncomingMessage, socket: stream.Duplex, head: Buffer) => {
       const cpId = Server.getCpIdFromUrl(req.url);
@@ -57,7 +57,24 @@ export class Server extends EventEmitter {
     });
 
     this.server.listen(port);
+
+    const interval = setInterval(() => {
+      console.log("number of ws clients", wss.clients.size)
+      wss.clients.forEach(ws => {
+        // ws.isAlive = true;
+        // ws.ping(() => {})
+      });
+    }, 3 * 1000);
+    
   }
+
+
+  private onNewConnection2(socket: WebSocket, req: IncomingMessage) {
+  
+    setTimeout(() => socket.close(), 2000);
+    setInterval(() => console.log(socket.readyState), 1000);
+    
+  };
 
   private onNewConnection(socket: WebSocket, req: IncomingMessage) {
     const cpId = Server.getCpIdFromUrl(req.url);
@@ -69,7 +86,33 @@ export class Server extends EventEmitter {
       socket.close();
       return;
     }
-
+    let failCount = 0;
+    const interval = setInterval(()=>{
+      
+      console.log('ready state ' + socket.readyState)
+      // if(socket.readyState === 3){
+      //   client.setConnection(null);
+      // }
+      socket.ping('ping somthing to cp',false, (err) => {
+        console.error('Ping error:', err);
+        
+        if (err) {
+          if(failCount++ > 3){
+           // clearInterval(interval);
+            console.error('Ping fail cleanup');
+            //socket.close();
+            client.setConnection(null)
+            socket.terminate();
+            socket.removeAllListeners();
+            client.removeAllListeners();
+          }
+        }
+         else {
+          console.log('Ping response received');
+        }
+      })
+    }, 1000)
+    
     const client = new OcppClientConnection(cpId);
     client.setConnection(new Protocol(client, socket));
 
@@ -79,11 +122,13 @@ export class Server extends EventEmitter {
     });
 
     socket.on('close', (code: number, reason: Buffer) => {
+      console.log("SOCKET CLOSE");
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
       client.emit('close', code, reason);
-      // this.emit('close', client, code, reason);
+      socket.removeAllListeners();
     });
+
     this.clients.push(client);
     this.emit('connection', client);
   }

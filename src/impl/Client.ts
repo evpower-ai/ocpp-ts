@@ -45,7 +45,10 @@ export class Client extends EventEmitter {
     });
 
     this.ws.on('close', (code: number, reason: Buffer) => {
+      console.log('Client.ts close', code, reason);
+      console.log(this.connection?.socket.readyState);
       this.setConnection(null);
+      console.log(this.connection?.socket.readyState);
       this.emit('close', code, reason);
     });
 
@@ -59,6 +62,8 @@ export class Client extends EventEmitter {
     this.ws.on('error', (err) => {
       this.emit('error', err);
     });
+
+
   }
 
   public close() {
