@@ -8,11 +8,11 @@ import { OCPP_PROTOCOL_1_6 } from './schemas';
 import { Client } from './Client';
 import { OcppClientConnection } from '../OcppClientConnection';
 import { Protocol } from './Protocol';
-
+const pingInterval =1000;
 export class Server extends EventEmitter {
   private server: httpServer | undefined;
 
-  private clients: Array<Client> = [];
+  private clients: Array<OcppClientConnection> = [];
 
   protected listen(port = 9220, options?: SecureContextOptions) {
     if (options) {
@@ -70,8 +70,31 @@ export class Server extends EventEmitter {
       return;
     }
 
+    console.log(`new client connection cpid: ${cpId}`);
+    for(let i=0;i<this.clients.length;i++){
+      if(this.clients[i].getCpId()===cpId){
+        console.log(`already has client with cpid: ${cpId}, deleting client from array`);
+        this.clients[i].close();
+        this.clients[i].removeAllListeners();
+        this.clients[i].setConnection(null);
+        this.clients.splice(i,1);
+      }
+    }
+   
     const client = new OcppClientConnection(cpId);
     client.setConnection(new Protocol(client, socket));
+
+    // const intervalId = setInterval(() => {
+    //   socket.ping(cpId,false,(err)=>{
+    //     if(err){
+    //       const code = 1000;
+    //       console.error(`error while ws ping to: ${cpId}, error: ${err}`);
+    //       socket.terminate();
+    //       socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
+    //       clearInterval(intervalId);
+    //     }
+    //   });
+    // }, pingInterval);
 
     socket.on('error', (err) => {
       console.info(err.message, socket.readyState);
@@ -79,10 +102,15 @@ export class Server extends EventEmitter {
     });
 
     socket.on('close', (code: number, reason: Buffer) => {
-      const index = this.clients.indexOf(client);
-      this.clients.splice(index, 1);
+      console.log(`socket on close: ${cpId}`);
+      
       client.emit('close', code, reason);
-      // this.emit('close', client, code, reason);
+      client.close()
+
+      const index = this.clients.indexOf(client);
+      if(index !== -1) this.clients[index].setConnection(null);
+      this.clients.splice(index, 1);
+      
     });
     this.clients.push(client);
     this.emit('connection', client);
