@@ -2,8 +2,13 @@ import { SecureContextOptions } from 'tls';
 import { IncomingMessage } from 'http';
 import { Server } from './impl/Server';
 import { OcppClientConnection } from './OcppClientConnection';
+import { IServerConfig } from './impl/server.config';
 
 export class OcppServer extends Server {
+  constructor(config: IServerConfig) {
+    super(config);  
+  }
+  
   listen(port: number = 9220, options?: SecureContextOptions) {
     super.listen(port, options);
   }
