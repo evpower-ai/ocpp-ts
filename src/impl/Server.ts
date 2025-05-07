@@ -87,24 +87,40 @@ export class Server extends EventEmitter {
     socket.on('pong', () => {
       isAlive = true;
     });
-    
-    const pingInterval = setInterval(() => {
+
+    let pingInterval = setInterval(() => {
       if (isAlive === false) {
-        console.error(`Didn't received ping/pong for ${this.pingInterval} seconds, closing ${cpId}`);
+        console.error(`Didn't received pong for ${this.pingInterval} seconds, closing ${cpId}`);
         socket.close();
         return;
       }
       isAlive = false;
-      if (socket.readyState < WebSocket.CLOSING) {
-        socket.ping(cpId,false,(err)=>{
-          if(err){
-            const code = 1011;
-            console.error(`error while ws ping to: ${cpId}, error: ${err}`);
-            socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
-          }
-        });
-      }
-    }, this.pingInterval * 1000);
+      console.info('pinging client', cpId);
+      socket.ping(cpId, false, (err) => {
+        if(err){
+          const code = 1011;
+          console.error(`error while ws ping to: ${cpId}, error: ${err}`);
+          socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
+        } 
+      })
+    },this.pingInterval * 1000)
+    // const pingInterval = setInterval(() => {
+    //   if (isAlive === false) {
+    //     console.error(`Didn't received ping/pong for ${this.pingInterval} seconds, closing ${cpId}`);
+    //     socket.close();
+    //     return;
+    //   }
+    //   isAlive = false;
+    //   if (socket.readyState < WebSocket.CLOSING) {
+    //     socket.ping(cpId,false,(err)=>{
+    //       if(err){
+    //         const code = 1011;
+    //         console.error(`error while ws ping to: ${cpId}, error: ${err}`);
+    //         socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
+    //       }
+    //     });
+    //   }
+    // }, this.pingInterval * 1000);
 
 
     socket.on('error', (err) => {
