@@ -84,17 +84,17 @@ export class Server extends EventEmitter {
     const client = new OcppClientConnection(cpId);
     client.setConnection(new Protocol(client, socket));
 
-    // const intervalId = setInterval(() => {
-    //   socket.ping(cpId,false,(err)=>{
-    //     if(err){
-    //       const code = 1000;
-    //       console.error(`error while ws ping to: ${cpId}, error: ${err}`);
-    //       socket.terminate();
-    //       socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
-    //       clearInterval(intervalId);
-    //     }
-    //   });
-    // }, pingInterval);
+    const intervalId = setInterval(() => {
+      socket.ping(cpId,false,(err)=>{
+        if(err){
+          const code = 1000;
+          console.error(`error while ws ping to: ${cpId}, error: ${err}`);
+          socket.terminate();
+          socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
+          clearInterval(intervalId);
+        }
+      });
+    }, pingInterval);
 
     socket.on('error', (err) => {
       console.info(err.message, socket.readyState);
