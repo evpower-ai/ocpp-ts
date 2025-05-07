@@ -8,19 +8,22 @@ import { OCPP_PROTOCOL_1_6 } from './schemas';
 import { Client } from './Client';
 import { OcppClientConnection } from '../OcppClientConnection';
 import { Protocol } from './Protocol';
-import { IServerConfig } from './server.config';
 
 export class Server extends EventEmitter {
   private server: httpServer | undefined;
 
   private clients: Array<Client> = [];
-  private config: IServerConfig;
+  private pingInterval!: number; // seconds
+  private DEFAULT_PING_INTERVAL: number = 30; // seconds
 
-  constructor(config: IServerConfig) {
-    super();
-    this.config = config;
+  // constructor() {
+  //   super();
+  //   this.pingInterval = this.DEFAULT_PING_INTERVAL;
+  // }
+
+  public setPingInterval(pingInterval: number) {
+    this.pingInterval = pingInterval;
   }
-
   protected listen(port = 9220, options?: SecureContextOptions) {
     if (options) {
       this.server = createHttpsServer(options || {});
@@ -80,16 +83,29 @@ export class Server extends EventEmitter {
     const client = new OcppClientConnection(cpId);
     client.setConnection(new Protocol(client, socket));
 
-    const intervalId = setInterval(() => {
-      socket.ping(cpId,false,(err)=>{
-        if(err){
-          const code = 1011;
-          console.error(`error while ws ping to: ${cpId}, error: ${err}`);
-          socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
-          clearInterval(intervalId);
-        }
-      });
-    }, this.config.pingInterval);
+    let isAlive = true;
+    socket.on('pong', () => {
+      isAlive = true;
+    });
+    
+    const pingInterval = setInterval(() => {
+      if (isAlive === false) {
+        console.error(`Didn't received ping/pong for ${this.pingInterval} seconds, closing ${cpId}`);
+        socket.close();
+        return;
+      }
+      isAlive = false;
+      if (socket.readyState < WebSocket.CLOSING) {
+        socket.ping(cpId,false,(err)=>{
+          if(err){
+            const code = 1011;
+            console.error(`error while ws ping to: ${cpId}, error: ${err}`);
+            socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
+          }
+        });
+      }
+    }, this.pingInterval * 1000);
+
 
     socket.on('error', (err) => {
       console.info(err.message, socket.readyState);
@@ -100,6 +116,7 @@ export class Server extends EventEmitter {
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
       client.emit('close', code, reason);
+      clearInterval(pingInterval);
       // this.emit('close', client, code, reason);
     });
     this.clients.push(client);
