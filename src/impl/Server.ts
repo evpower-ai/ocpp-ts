@@ -83,9 +83,8 @@ export class Server extends EventEmitter {
     const intervalId = setInterval(() => {
       socket.ping(cpId,false,(err)=>{
         if(err){
-          const code = 1000;
+          const code = 1011;
           console.error(`error while ws ping to: ${cpId}, error: ${err}`);
-          socket.terminate();
           socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
           clearInterval(intervalId);
         }
