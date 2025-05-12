@@ -91,7 +91,7 @@ export class Server extends EventEmitter {
     let pingInterval = setInterval(() => {
       if (isAlive === false) {
         console.error(`Didn't received pong for ${this.pingInterval} seconds, closing ${cpId}`);
-        socket.close();
+        socket.close(1001,`Didn't received pong for ${this.pingInterval} seconds, closing ${cpId}`);//1001 = going away, Indicates that the server is intentionally closing the connection because the client is unresponsive. 
         return;
       }
       isAlive = false;
