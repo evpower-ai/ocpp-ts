@@ -14,12 +14,6 @@ export class Server extends EventEmitter {
 
   private clients: Array<Client> = [];
   private pingInterval!: number; // seconds
-  private DEFAULT_PING_INTERVAL: number = 30; // seconds
-
-  // constructor() {
-  //   super();
-  //   this.pingInterval = this.DEFAULT_PING_INTERVAL;
-  // }
 
   public setPingInterval(pingInterval: number) {
     this.pingInterval = pingInterval;
@@ -104,24 +98,6 @@ export class Server extends EventEmitter {
         } 
       })
     },this.pingInterval * 1000)
-    // const pingInterval = setInterval(() => {
-    //   if (isAlive === false) {
-    //     console.error(`Didn't received ping/pong for ${this.pingInterval} seconds, closing ${cpId}`);
-    //     socket.close();
-    //     return;
-    //   }
-    //   isAlive = false;
-    //   if (socket.readyState < WebSocket.CLOSING) {
-    //     socket.ping(cpId,false,(err)=>{
-    //       if(err){
-    //         const code = 1011;
-    //         console.error(`error while ws ping to: ${cpId}, error: ${err}`);
-    //         socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
-    //       }
-    //     });
-    //   }
-    // }, this.pingInterval * 1000);
-
 
     socket.on('error', (err) => {
       console.info(err.message, socket.readyState);
