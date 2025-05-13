@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import WebSocket, { WebSocketServer } from 'ws';
+import WebSocket, { WebSocketServer, CLOSING } from 'ws';
 import { SecureContextOptions } from 'tls';
 import { createServer as createHttpsServer } from 'https';
 import { createServer as createHttpServer, IncomingMessage, Server as httpServer } from 'http';
@@ -25,7 +25,7 @@ export class Server extends EventEmitter {
       this.server = createHttpServer();
     }
 
-   const wss = new WebSocketServer({
+    const wss = new WebSocketServer({
       noServer: true,
       handleProtocols: (protocols: Set<string>) => {
         if (protocols.has(OCPP_PROTOCOL_1_6)) {
@@ -79,25 +79,27 @@ export class Server extends EventEmitter {
 
     let isAlive = true;
     socket.on('pong', () => {
+      console.info('received pong from client', cpId);
       isAlive = true;
     });
-
+    let isPingPongTerminated = false;
     let pingInterval = setInterval(() => {
+
       if (isAlive === false) {
-        console.error(`Didn't received pong for ${this.pingInterval} seconds, closing ${cpId}`);
-        socket.close(1001,`Didn't received pong for ${this.pingInterval} seconds, closing ${cpId}`);//1001 = going away, Indicates that the server is intentionally closing the connection because the client is unresponsive. 
+        isPingPongTerminated = true;
+        socket.terminate();
         return;
       }
       isAlive = false;
-      console.info('pinging client', cpId);
-      socket.ping(cpId, false, (err) => {
-        if(err){
-          const code = 1011;
-          console.error(`error while ws ping to: ${cpId}, error: ${err}`);
-          socket.close(code,`error while ws ping to: ${cpId}, error: ${err}`);
-        } 
-      })
-    },this.pingInterval * 1000)
+      if (socket.readyState < CLOSING) {
+        socket.ping(cpId, false, (err) => {
+          if (err) {
+            isPingPongTerminated = true;
+            socket.terminate();
+          }
+        })
+      }
+    }, this.pingInterval * 1000);
 
     socket.on('error', (err) => {
       console.info(err.message, socket.readyState);
@@ -105,26 +107,26 @@ export class Server extends EventEmitter {
     });
 
     socket.on('close', (code: number, reason: Buffer) => {
+      clearInterval(pingInterval);
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
+      if (isPingPongTerminated) reason = Buffer.from(`Didn't received pong for ${this.pingInterval} seconds`);
       client.emit('close', code, reason);
-      clearInterval(pingInterval);
-      // this.emit('close', client, code, reason);
     });
     this.clients.push(client);
     this.emit('connection', client);
   }
 
   protected close() {
-      this.server?.close();
-      this.clients.forEach((client) => client.close());
+    this.server?.close();
+    this.clients.forEach((client) => client.close());
   }
 
   static getCpIdFromUrl(url: string | undefined): string | undefined {
     try {
       if (url) {
         const encodedCpId = url.split('/')
-        .pop();
+          .pop();
         if (encodedCpId) {
           return decodeURI(encodedCpId.split('?')[0]);
         }

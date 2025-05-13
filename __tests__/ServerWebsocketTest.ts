@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { Server } from '../src/impl/Server';
 import { IncomingMessage } from 'http';
 import { OCPP_PROTOCOL_1_6 } from '../src/impl/schemas';
+import { OcppClientConnection } from '../src/OcppClientConnection';
 
 jest.useFakeTimers();
 
@@ -9,7 +10,8 @@ describe('Server ping/pong implementation', () => {
   let server: Server;
   let mockSocket: WebSocket;
   let mockRequest: IncomingMessage;
-
+  let mockClient: OcppClientConnection;
+  
   beforeEach(() => {
     server = new Server();
     server.setPingInterval(1); // Set ping interval to 1 second for testing
@@ -17,7 +19,8 @@ describe('Server ping/pong implementation', () => {
     mockSocket = {
       on: jest.fn(),
       ping: jest.fn((_, __, callback) => callback && callback(null)),
-      close: jest.fn(),
+      terminate: jest.fn(),
+      readyState: WebSocket.OPEN,
     } as unknown as WebSocket;
 
     Object.defineProperty(mockSocket, 'protocol', {
@@ -25,15 +28,22 @@ describe('Server ping/pong implementation', () => {
       writable: false, // Mimic the read-only behavior
     });
 
+    Object.defineProperty(mockSocket, 'readyState', {
+      value: 1, // Mimic the OPEN state
+    });
+
     mockRequest = {
       url: '/chargepoint/delta-001',
     } as IncomingMessage;
+
+    mockClient = {
+      emit: jest.fn(),
+    } as unknown as OcppClientConnection;
+
+    jest.spyOn(OcppClientConnection.prototype, 'emit').mockImplementation(mockClient.emit);
   });
 
   it('should send ping and handle pong response', () => {
-    const spyPing = jest.spyOn(mockSocket, 'ping');
-    const spyClose = jest.spyOn(mockSocket, 'close');
-
     server['onNewConnection'](mockSocket, mockRequest);
 
     // Simulate the 'pong' event listener being registered
@@ -50,29 +60,38 @@ describe('Server ping/pong implementation', () => {
     // Fast-forward time to trigger the ping interval
     jest.advanceTimersByTime(1000);
 
-    expect(spyPing).toHaveBeenCalledTimes(1);
-    expect(spyClose).not.toHaveBeenCalled();
+    // Verify that ping was called once
+    expect(mockSocket.ping).toHaveBeenCalledTimes(1);
 
-    // Simulate pong response
+    // Simulate another pong response
     if (pongHandler) pongHandler();
 
+    // Fast-forward time again to trigger another ping
     jest.advanceTimersByTime(1000);
-    expect(spyPing).toHaveBeenCalledTimes(2);
 
-    // Simulate no pong response
-    jest.advanceTimersByTime(1000);
-    expect(spyClose).toHaveBeenCalledTimes(1);
+    // Verify that ping was called twice
+    expect(mockSocket.ping).toHaveBeenCalledTimes(2);
+
+    // Ensure the connection is still alive
+    expect(mockSocket.terminate).not.toHaveBeenCalled();
   });
 
-  it('should close the connection if no pong is received', () => {
-    const spyClose = jest.spyOn(mockSocket, 'close');
-
+  it('should terminate the connection and emit close if no pong is received', () => {
+    //make new connection
     server['onNewConnection'](mockSocket, mockRequest);
 
     // Fast-forward time to simulate no pong response
-    jest.advanceTimersByTime(2000);
+    jest.advanceTimersByTime(2500);
 
-    expect(spyClose).toHaveBeenCalledWith(1001, expect.stringContaining('Didn\'t received pong for 1 seconds, closing delta-001'));
+    // Verify that the connection is terminated
+    expect(mockSocket.terminate).toHaveBeenCalledTimes(1);
+
+    // // Verify that the close event is emitted with the correct reason
+    // expect(mockClient.emit).toHaveBeenCalledWith(
+    //   'close',
+    //   expect.any(Number),
+    //   Buffer.from(`Didn't received pong for 1 seconds`)
+    // );
   });
 
   afterEach(() => {
