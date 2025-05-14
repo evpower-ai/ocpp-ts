@@ -113,7 +113,7 @@ export class Server extends EventEmitter {
       clearInterval(pingTimerInterval);
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
-      if (isPingPongTerminated) reason = Buffer.from(`Didn't received pong for ${this.pingInterval} seconds`);
+      if (isPingPongTerminated) reason = Buffer.from(`Did not received pong for ${this.pingInterval} seconds`);
       client.emit('close', code, reason);
     });
     this.clients.push(client);
