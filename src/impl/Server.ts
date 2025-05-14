@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import WebSocket, { WebSocketServer } from 'ws';
+import WebSocket, { WebSocketServer, CLOSING } from 'ws';
 import { SecureContextOptions } from 'tls';
 import { createServer as createHttpsServer } from 'https';
 import { createServer as createHttpServer, IncomingMessage, Server as httpServer } from 'http';
@@ -9,11 +9,16 @@ import { Client } from './Client';
 import { OcppClientConnection } from '../OcppClientConnection';
 import { Protocol } from './Protocol';
 
+const DEFAULT_PING_INTERVAL = 30; // seconds
 export class Server extends EventEmitter {
   private server: httpServer | undefined;
 
   private clients: Array<Client> = [];
+  private pingInterval: number = DEFAULT_PING_INTERVAL; // seconds
 
+  public setPingInterval(pingInterval: number) {
+    this.pingInterval = pingInterval;
+  }
   protected listen(port = 9220, options?: SecureContextOptions) {
     if (options) {
       this.server = createHttpsServer(options || {});
@@ -21,7 +26,7 @@ export class Server extends EventEmitter {
       this.server = createHttpServer();
     }
 
-   const wss = new WebSocketServer({
+    const wss = new WebSocketServer({
       noServer: true,
       handleProtocols: (protocols: Set<string>) => {
         if (protocols.has(OCPP_PROTOCOL_1_6)) {
@@ -73,31 +78,58 @@ export class Server extends EventEmitter {
     const client = new OcppClientConnection(cpId);
     client.setConnection(new Protocol(client, socket));
 
+    let isAlive = true;
+    socket.on('pong', () => {
+      // console.info('received pong from client', cpId);
+      isAlive = true;
+    });
+    let isPingPongTerminated = false;
+    let pingTimerInterval = setInterval(() => {
+      if (isAlive === false) {
+        // console.info('did not get pong, terminating connection', cpId);
+        isPingPongTerminated = true;
+        socket.terminate();
+        return;
+      }
+      
+      if (socket.readyState < CLOSING) {
+        isAlive = false;
+        socket.ping(cpId, false, (err) => {
+          if (err) {
+            // console.info('error on ping', err.message);
+            isPingPongTerminated = true;
+            socket.terminate();
+          }
+        })
+      }
+    }, this.pingInterval * 1000);
+
     socket.on('error', (err) => {
       console.info(err.message, socket.readyState);
       client.emit('error', err);
     });
 
     socket.on('close', (code: number, reason: Buffer) => {
+      clearInterval(pingTimerInterval);
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
+      if (isPingPongTerminated) reason = Buffer.from(`Did not received pong for ${this.pingInterval} seconds`);
       client.emit('close', code, reason);
-      // this.emit('close', client, code, reason);
     });
     this.clients.push(client);
     this.emit('connection', client);
   }
 
   protected close() {
-      this.server?.close();
-      this.clients.forEach((client) => client.close());
+    this.server?.close();
+    this.clients.forEach((client) => client.close());
   }
 
   static getCpIdFromUrl(url: string | undefined): string | undefined {
     try {
       if (url) {
         const encodedCpId = url.split('/')
-        .pop();
+          .pop();
         if (encodedCpId) {
           return decodeURI(encodedCpId.split('?')[0]);
         }

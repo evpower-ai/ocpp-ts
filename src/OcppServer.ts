@@ -4,6 +4,11 @@ import { Server } from './impl/Server';
 import { OcppClientConnection } from './OcppClientConnection';
 
 export class OcppServer extends Server {
+
+  public setPingInterval(pingInterval: number) {
+    super.setPingInterval(pingInterval);
+  }
+
   listen(port: number = 9220, options?: SecureContextOptions) {
     super.listen(port, options);
   }
