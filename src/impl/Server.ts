@@ -9,11 +9,12 @@ import { Client } from './Client';
 import { OcppClientConnection } from '../OcppClientConnection';
 import { Protocol } from './Protocol';
 
+const DEFAULT_PING_INTERVAL = 30; // seconds
 export class Server extends EventEmitter {
   private server: httpServer | undefined;
 
   private clients: Array<Client> = [];
-  private pingInterval!: number; // seconds
+  private pingInterval: number = DEFAULT_PING_INTERVAL; // seconds
 
   public setPingInterval(pingInterval: number) {
     this.pingInterval = pingInterval;
@@ -79,21 +80,23 @@ export class Server extends EventEmitter {
 
     let isAlive = true;
     socket.on('pong', () => {
-      console.info('received pong from client', cpId);
+      // console.info('received pong from client', cpId);
       isAlive = true;
     });
     let isPingPongTerminated = false;
-    let pingInterval = setInterval(() => {
-
+    let pingTimerInterval = setInterval(() => {
       if (isAlive === false) {
+        console.info('did not get pong, terminating connection', cpId);
         isPingPongTerminated = true;
         socket.terminate();
         return;
       }
-      isAlive = false;
+      
       if (socket.readyState < CLOSING) {
+        isAlive = false;
         socket.ping(cpId, false, (err) => {
           if (err) {
+            console.info('error on ping', err.message);
             isPingPongTerminated = true;
             socket.terminate();
           }
@@ -107,7 +110,7 @@ export class Server extends EventEmitter {
     });
 
     socket.on('close', (code: number, reason: Buffer) => {
-      clearInterval(pingInterval);
+      clearInterval(pingTimerInterval);
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
       if (isPingPongTerminated) reason = Buffer.from(`Didn't received pong for ${this.pingInterval} seconds`);
