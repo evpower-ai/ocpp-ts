@@ -65,6 +65,7 @@ export class Server extends EventEmitter {
   }
 
   private onNewConnection(socket: WebSocket, req: IncomingMessage) {
+    
     const cpId = Server.getCpIdFromUrl(req.url);
     if (!socket.protocol || !cpId) {
       // From Spec: If the Central System does not agree to using one of the subprotocols offered
@@ -76,6 +77,7 @@ export class Server extends EventEmitter {
     }
 
     const client = new OcppClientConnection(cpId);
+    client.setHeaders(req.headers);
     client.setConnection(new Protocol(client, socket));
 
     let isAlive = true;
