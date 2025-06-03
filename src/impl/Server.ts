@@ -14,11 +14,13 @@ export class Server extends EventEmitter {
   private server: httpServer | undefined;
 
   private clients: Array<Client> = [];
+
   private pingInterval: number = DEFAULT_PING_INTERVAL; // seconds
 
   public setPingInterval(pingInterval: number) {
     this.pingInterval = pingInterval;
   }
+
   protected listen(port = 9220, options?: SecureContextOptions) {
     if (options) {
       this.server = createHttpsServer(options || {});
@@ -86,14 +88,14 @@ export class Server extends EventEmitter {
       isAlive = true;
     });
     let isPingPongTerminated = false;
-    let pingTimerInterval = setInterval(() => {
+    const pingTimerInterval = setInterval(() => {
       if (isAlive === false) {
         // console.info('did not get pong, terminating connection', cpId);
         isPingPongTerminated = true;
         socket.terminate();
         return;
       }
-      
+
       if (socket.readyState < CLOSING) {
         isAlive = false;
         socket.ping(cpId, false, (err) => {
@@ -102,7 +104,7 @@ export class Server extends EventEmitter {
             isPingPongTerminated = true;
             socket.terminate();
           }
-        })
+        });
       }
     }, this.pingInterval * 1000);
 
@@ -115,8 +117,8 @@ export class Server extends EventEmitter {
       clearInterval(pingTimerInterval);
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
-      if (isPingPongTerminated) reason = Buffer.from(`Did not received pong for ${this.pingInterval} seconds`);
-      client.emit('close', code, reason);
+      const r = isPingPongTerminated ? Buffer.from(`Did not received pong for ${this.pingInterval} seconds`) : reason;
+      client.emit('close', code, r);
     });
     this.clients.push(client);
     this.emit('connection', client);
