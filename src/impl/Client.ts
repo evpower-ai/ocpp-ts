@@ -5,64 +5,64 @@ import { Protocol } from './Protocol';
 import { OCPP_PROTOCOL_1_6 } from './schemas';
 
 export class Client extends EventEmitter {
-  private connection: Protocol | null = null;
+private connection: Protocol | null = null;
 
-  private cpId: string;
+private cpId: string;
 
-  private ws: WebSocket | undefined;
+private ws: WebSocket | undefined;
 
-  constructor(cpId: string) {
-    super();
-    this.cpId = cpId;
+constructor(cpId: string) {
+  super();
+  this.cpId = cpId;
+}
+
+protected getCpId(): string {
+  return this.cpId;
+}
+
+protected setConnection(connection: Protocol | null): void {
+  this.connection = connection;
+}
+
+protected callRequest(request: string, payload: any): Promise<any> {
+  if (this.connection) {
+    return this.connection.callRequest(request, payload);
   }
+  throw new Error('Charging point not connected to central system');
+}
 
-  protected getCpId(): string {
-    return this.cpId;
-  }
+protected connect(centralSystemUrl: string, headers?: OutgoingHttpHeaders) {
+  this.ws = new WebSocket(centralSystemUrl + this.getCpId(), [OCPP_PROTOCOL_1_6], {
+    perMessageDeflate: false,
+    protocolVersion: 13,
+    headers,
+  });
 
-  protected setConnection(connection: Protocol | null): void {
-    this.connection = connection;
-  }
-
-  protected callRequest(request: string, payload: any): Promise<any> {
-    if (this.connection) {
-      return this.connection.callRequest(request, payload);
+  this.ws.on('upgrade', (res) => {
+    if (!res.headers['sec-websocket-protocol']) {
+      this.emit('error', new Error(`Server doesn't support protocol ${OCPP_PROTOCOL_1_6}`));
     }
-    throw new Error('Charging point not connected to central system');
+  });
+
+  this.ws.on('close', (code: number, reason: Buffer) => {
+    this.setConnection(null);
+    this.emit('close', code, reason);
+  });
+
+  this.ws.on('open', () => {
+    if (this.ws) {
+      this.setConnection(new Protocol(this, this.ws));
+      this.emit('connect');
+    }
+  });
+
+  this.ws.on('error', (err) => {
+    this.emit('error', err);
+  });
+}
+
+public close(code?: number | undefined, data?: string | Buffer | undefined) {
+  this.connection?.socket.close(code, data);
+  this.ws?.close(code, data);
   }
-
-  protected connect(centralSystemUrl: string, headers?: OutgoingHttpHeaders) {
-    this.ws = new WebSocket(centralSystemUrl + this.getCpId(), [OCPP_PROTOCOL_1_6], {
-      perMessageDeflate: false,
-      protocolVersion: 13,
-      headers,
-    });
-
-    this.ws.on('upgrade', (res) => {
-      if (!res.headers['sec-websocket-protocol']) {
-        this.emit('error', new Error(`Server doesn't support protocol ${OCPP_PROTOCOL_1_6}`));
-      }
-    });
-
-    this.ws.on('close', (code: number, reason: Buffer) => {
-      this.setConnection(null);
-      this.emit('close', code, reason);
-    });
-
-    this.ws.on('open', () => {
-      if (this.ws) {
-        this.setConnection(new Protocol(this, this.ws));
-        this.emit('connect');
-      }
-    });
-
-    this.ws.on('error', (err) => {
-      this.emit('error', err);
-    });
-  }
-
-  public close() {
-    this.connection?.socket.close();
-    this.ws?.close();
-   }
 }
