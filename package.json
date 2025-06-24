@@ -1,6 +1,6 @@
 {
-  "name": "ocpp-ts",
-  "version": "0.3.1",
+  "name": "@evpower/ocpp-ts",
+  "version": "0.4.0",
   "description": "OCPP 1.6: Open Charge Point Protocol",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -23,9 +23,9 @@
   "author": "Evgeni Gordejev",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sepych/ocpp-ts/issues"
+    "url": "https://github.com/evpower-ai/ocpp-ts/issues"
   },
-  "homepage": "https://github.com/sepych/ocpp-ts",
+  "homepage": "https://github.com/evpower-ai/ocpp-ts",
   "dependencies": {
     "ajv": "^6.12.6",
     "uuid": "^8.3.2",
@@ -49,5 +49,8 @@
     "json-schema-to-typescript": "^10.1.5",
     "ts-node": "^10.4.0",
     "typescript": "^4.5.4"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
