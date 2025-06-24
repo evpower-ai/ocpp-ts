@@ -58,8 +58,19 @@ import {
   UpdateFirmwareResponse,
 } from './types';
 import { Protocol } from './impl/Protocol';
+import { OutgoingHttpHeaders } from 'node:http';
 
 export class OcppClientConnection extends Client {
+
+  headers?: OutgoingHttpHeaders
+  setHeaders(headers: OutgoingHttpHeaders) {
+    this.headers = headers;
+  }
+
+  getHeaders(): OutgoingHttpHeaders | undefined {
+    return this.headers;
+  }
+
   getCpId(): string {
     return super.getCpId();
   }
