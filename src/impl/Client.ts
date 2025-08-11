@@ -28,7 +28,7 @@ export class Client extends EventEmitter {
     if (this.connection) {
       return this.connection.callRequest(request, payload);
     }
-    throw new Error('Charging point not connected to central system');
+    return Promise.reject('Charging point not connected to central system');
   }
 
   protected connect(centralSystemUrl: string, headers?: OutgoingHttpHeaders) {
