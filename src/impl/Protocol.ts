@@ -19,7 +19,7 @@ export class Protocol {
   eventEmitter: EventEmitter;
 
   socket: WebSocket;
-
+  TIME_OUT = 3000000;
   constructor(eventEmitter: EventEmitter, socket: WebSocket) {
     this.eventEmitter = eventEmitter;
     this.socket = socket;
@@ -71,7 +71,7 @@ export class Protocol {
         setTimeout(() => {
           // timeout error
           this.onCallError(messageId, ERROR_INTERNALERROR, 'No response from the client', {});
-        }, 10000);
+        }, this.TIME_OUT);
       } catch (e) {
         console.error(e);
         reject(e);
@@ -128,7 +128,7 @@ export class Protocol {
         setTimeout(() => {
           // timeout error
           reject(new OcppError(ERROR_INTERNALERROR, 'No response from the handler'));
-        }, 10000);
+        }, this.TIME_OUT);
 
         const hasListener = this.eventEmitter.emit(request, payload, (result: any) => {
           resolve(result);
