@@ -14,6 +14,8 @@ const CALLRESULT_MESSAGE = 3; // Server-to-Client
 const CALLERROR_MESSAGE = 4; // Server-to-Client
 
 export class Protocol {
+  static schemaHolder: { [key: string]: any } = {};
+  static validators: { [key: string]: SchemaValidator } = {};
   pendingCalls: any = {};
 
   eventEmitter: EventEmitter;
@@ -25,6 +27,10 @@ export class Protocol {
     this.socket = socket;
     this.socket.on('message', (message) => {
       this.onMessage(message.toString());
+    });
+    Protocol.schemaHolder = schemas;
+    Object.keys(Protocol.schemaHolder).forEach((key) => {
+      Protocol.validators[key] = new SchemaValidator(Protocol.schemaHolder[key]);
     });
   }
 
@@ -120,9 +126,8 @@ export class Protocol {
   private async onCall(messageId: string, request: string, payload: any) {
     try {
       // @ts-ignore
-      const schema = schemas[request];
 
-      const validator = new SchemaValidator(schema);
+      const validator = Protocol.validators[request];
       validator.validate(payload);
       const response = await new Promise((resolve, reject) => {
         setTimeout(() => {

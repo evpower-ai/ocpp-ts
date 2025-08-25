@@ -1,4 +1,4 @@
-import Ajv from 'ajv';
+import Ajv, { Ajv as AjvInterface } from 'ajv';
 import {
   ERROR_FORMATIONVIOLATION,
   ERROR_PROPERTYCONSTRAINTVIOLATION,
@@ -9,10 +9,12 @@ import {
 
 export class SchemaValidator {
   schema: any;
-
+  private validateFn: any;
+  static ajv: AjvInterface = new Ajv();
   constructor(schema: object) {
     this.schema = schema;
     delete this.schema.$schema;
+    this.validateFn = SchemaValidator.ajv.compile(this.schema);
   }
 
   /**
@@ -22,12 +24,9 @@ export class SchemaValidator {
     if (!this.schema) {
       throw new OcppError(ERROR_PROTOCOLERROR, 'Schema for request not found');
     }
-    const ajv = new Ajv();
-    // delete schema.$schema;
-    const validate = ajv.compile(this.schema);
-    const valid = validate(payload);
+    const valid = this.validateFn(payload);
     if (!valid) {
-      validate.errors?.forEach((error) => {
+      this.validateFn.errors?.forEach((error: { keyword: string; }) => {
         if (error.keyword === 'additionalProperties') {
           throw new OcppError(
             ERROR_FORMATIONVIOLATION,
