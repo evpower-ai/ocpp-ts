@@ -14,18 +14,25 @@ const CALLRESULT_MESSAGE = 3; // Server-to-Client
 const CALLERROR_MESSAGE = 4; // Server-to-Client
 
 export class Protocol {
+  static schemaHolder: { [key: string]: any } = {};
+  static validators: { [key: string]: SchemaValidator } = {};
   pendingCalls: any = {};
 
   eventEmitter: EventEmitter;
 
   socket: WebSocket;
-
-  constructor(eventEmitter: EventEmitter, socket: WebSocket) {
+  private timeout = 30000;
+  constructor(eventEmitter: EventEmitter, socket: WebSocket, timeout: number) {
     this.eventEmitter = eventEmitter;
     this.socket = socket;
     this.socket.on('message', (message) => {
       this.onMessage(message.toString());
     });
+    Protocol.schemaHolder = schemas;
+    Object.keys(Protocol.schemaHolder).forEach((key) => {
+      Protocol.validators[key] = new SchemaValidator(Protocol.schemaHolder[key]);
+    });
+    this.timeout = timeout;
   }
 
   onMessage(message: string) {
@@ -70,8 +77,8 @@ export class Protocol {
 
         setTimeout(() => {
           // timeout error
-          this.onCallError(messageId, ERROR_INTERNALERROR, 'No response from the client', {});
-        }, 10000);
+          this.onCallError(messageId, ERROR_INTERNALERROR, `No response from the client for: ${this.timeout}ms, for ${request}`, {});
+        }, this.timeout);
       } catch (e) {
         console.error(e);
         reject(e);
@@ -120,15 +127,14 @@ export class Protocol {
   private async onCall(messageId: string, request: string, payload: any) {
     try {
       // @ts-ignore
-      const schema = schemas[request];
 
-      const validator = new SchemaValidator(schema);
+      const validator = Protocol.validators[request];
       validator.validate(payload);
       const response = await new Promise((resolve, reject) => {
         setTimeout(() => {
           // timeout error
           reject(new OcppError(ERROR_INTERNALERROR, 'No response from the handler'));
-        }, 10000);
+        }, this.timeout);
 
         const hasListener = this.eventEmitter.emit(request, payload, (result: any) => {
           resolve(result);

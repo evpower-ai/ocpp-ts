@@ -17,8 +17,14 @@ export class Server extends EventEmitter {
 
   private pingInterval: number = DEFAULT_PING_INTERVAL; // seconds
 
+  private protocolTimeout: number = 30000; // milliseconds
+
   public setPingInterval(pingInterval: number) {
     this.pingInterval = pingInterval;
+  }
+
+  public setProtocolTimeout(timeout: number) {
+    this.protocolTimeout = timeout;
   }
 
   protected listen(port = 9220, options?: SecureContextOptions) {
@@ -80,7 +86,7 @@ export class Server extends EventEmitter {
 
     const client = new OcppClientConnection(cpId);
     client.setHeaders(req.headers);
-    client.setConnection(new Protocol(client, socket));
+    client.setConnection(new Protocol(client, socket, this.protocolTimeout));
 
     let isAlive = true;
     socket.on('pong', () => {

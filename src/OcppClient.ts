@@ -60,6 +60,10 @@ import {
 import { Client } from './impl/Client';
 
 export class OcppClient extends Client {
+  constructor(cpId: string, protocolTimeout = 30000) {
+    super(cpId, protocolTimeout);
+  }
+
   connect(centralSystemUrl: string, headers?: OutgoingHttpHeaders) {
     super.connect(centralSystemUrl, headers);
   }

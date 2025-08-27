@@ -8,7 +8,13 @@ export class OcppServer extends Server {
     super.setPingInterval(pingInterval);
   }
 
+  constructor(protocolTimeout: number) {
+    super();
+    this.setProtocolTimeout(protocolTimeout);
+  }
+
   listen(port: number = 9220, options?: SecureContextOptions) {
+    
     super.listen(port, options);
   }
 
@@ -21,4 +27,5 @@ export class OcppServer extends Server {
   on(event: string | symbol, listener: (...args: any[]) => void) {
     return super.on(event, listener);
   }
+  
 }

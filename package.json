@@ -1,6 +1,6 @@
 {
   "name": "@evpower/ocpp-ts",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "OCPP 1.6: Open Charge Point Protocol",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -48,7 +48,7 @@
     "jest": "^27.4.5",
     "json-schema-to-typescript": "^10.1.5",
     "ts-node": "^10.4.0",
-    "typescript": "^4.5.4"
+    "typescript": "^5.2.0"
   },
   "publishConfig": {
     "access": "public"

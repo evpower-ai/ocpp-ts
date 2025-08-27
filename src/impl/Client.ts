@@ -5,15 +5,17 @@ import { Protocol } from './Protocol';
 import { OCPP_PROTOCOL_1_6 } from './schemas';
 
 export class Client extends EventEmitter {
+  private protocolTimeout: number;
   private connection: Protocol | null = null;
 
   private cpId: string;
 
   private ws: WebSocket | undefined;
 
-  constructor(cpId: string) {
+  constructor(cpId: string, protocolTimeout = 30000) {
     super();
     this.cpId = cpId;
+    this.protocolTimeout = protocolTimeout;
   }
 
   protected getCpId(): string {
@@ -51,7 +53,7 @@ export class Client extends EventEmitter {
 
     this.ws.on('open', () => {
       if (this.ws) {
-        this.setConnection(new Protocol(this, this.ws));
+        this.setConnection(new Protocol(this, this.ws, this.protocolTimeout));
         this.emit('connect');
       }
     });

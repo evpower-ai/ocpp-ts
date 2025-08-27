@@ -61,6 +61,9 @@ import { Protocol } from './impl/Protocol';
 import { OutgoingHttpHeaders } from 'node:http';
 
 export class OcppClientConnection extends Client {
+  constructor(cpId: string, protocolTimeout = 30000) {
+    super(cpId, protocolTimeout);
+  }
 
   headers?: OutgoingHttpHeaders
   setHeaders(headers: OutgoingHttpHeaders) {
