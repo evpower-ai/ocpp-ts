@@ -94,13 +94,6 @@ export class Server extends EventEmitter {
       isAlive = true;
     });
     let isPingPongTerminated = false;
-    socket.ping(cpId, false, (err) => {
-          if (err) {
-            // console.info('error on ping', err.message);
-            isPingPongTerminated = true;
-            socket.terminate();
-          }
-        });
     const pingTimerInterval = setInterval(() => {
       if (isAlive === false) {
         // console.info('did not get pong, terminating connection', cpId);
