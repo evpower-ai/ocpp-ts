@@ -77,7 +77,7 @@ export class Protocol {
 
         setTimeout(() => {
           // timeout error
-          this.onCallError(messageId, ERROR_INTERNALERROR, 'No response from the client', {});
+          this.onCallError(messageId, ERROR_INTERNALERROR, `No response from the client for: ${this.timeout}ms, for ${request}`, {});
         }, this.timeout);
       } catch (e) {
         console.error(e);
