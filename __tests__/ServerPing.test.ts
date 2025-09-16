@@ -11,7 +11,7 @@ describe('Server ping/pong implementation', () => {
   let mockSocket: WebSocket;
   let mockRequest: IncomingMessage;
   let mockClient: OcppClientConnection;
-  
+
   beforeEach(() => {
     server = new Server();
     server.setPingInterval(1); // Set ping interval to 1 second for testing
@@ -43,7 +43,7 @@ describe('Server ping/pong implementation', () => {
     jest.spyOn(OcppClientConnection.prototype, 'emit').mockImplementation(mockClient.emit);
   });
 
-  it('should send ping and handle pong response', () => {
+  test('should send ping and handle pong response', () => {
     server['onNewConnection'](mockSocket, mockRequest);
 
     // Simulate the 'pong' event listener being registered
@@ -76,7 +76,7 @@ describe('Server ping/pong implementation', () => {
     expect(mockSocket.terminate).not.toHaveBeenCalled();
   });
 
-  it('should terminate the connection and emit close if no pong is received', () => {
+  test('should terminate the connection and emit close if no pong is received', () => {
     //make new connection
     server['onNewConnection'](mockSocket, mockRequest);
 
