@@ -2,13 +2,13 @@ import EventEmitter from 'events';
 import WebSocket, { WebSocketServer, CLOSING } from 'ws';
 import { SecureContextOptions } from 'tls';
 import { createServer as createHttpsServer } from 'https';
-import { createServer as createHttpServer, IncomingMessage, Server as httpServer } from 'http';
+import { createServer as createHttpServer, IncomingMessage, Server as httpServer, STATUS_CODES } from 'http';
 import stream from 'node:stream';
 import { OCPP_PROTOCOL_1_6 } from './schemas';
 import { Client } from './Client';
 import { OcppClientConnection } from '../OcppClientConnection';
 import { Protocol } from './Protocol';
-
+import StatusCode from "status-code-enum";
 const DEFAULT_PING_INTERVAL = 30; // seconds
 export class Server extends EventEmitter {
   private server: httpServer | undefined;
@@ -52,9 +52,9 @@ export class Server extends EventEmitter {
         socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
         socket.destroy();
       } else if (this.listenerCount('authorization')) {
-        this.emit('authorization', cpId, req, (err?: Error) => {
-          if (err) {
-            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        this.emit('authorization', cpId, req, (status?: StatusCode) => {
+          if (status && status !== StatusCode.SuccessOK) {
+            socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
             socket.destroy();
           } else {
             wss.handleUpgrade(req, socket, head, (ws) => {
