@@ -98,8 +98,6 @@ export class Server extends EventEmitter {
     const pingTimerInterval = setInterval(() => {
       if (isAlive === false) {
         // console.error(`did not get pong, terminating connection in under ${this.pingInterval} seconds`, cpId);
-        // client.setTerminationReason(`No pong received from client in the last ping interval, pingInterval: ${this.pingInterval} seconds`);
-        // client.close(1001, `No pong received from client in the last ping interval, pingInterval: ${this.pingInterval} seconds`);
         socket.terminate();
       }
 
@@ -108,7 +106,6 @@ export class Server extends EventEmitter {
         socket.ping(cpId, false, (err) => {
           if (err) {
             // console.info('error on ping', err.message);
-            //  client.setTerminationReason(`Error sending ping to client: ${err.message}`);
             socket.terminate();
           }
         });
