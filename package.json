@@ -28,7 +28,6 @@
   "homepage": "https://github.com/evpower-ai/ocpp-ts",
   "dependencies": {
     "ajv": "^6.12.6",
-    "status-code": "^0.1.0",
     "status-code-enum": "^1.0.0",
     "uuid": "^8.3.2",
     "ws": "^8.18.3"
