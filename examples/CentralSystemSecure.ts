@@ -3,6 +3,7 @@ import fs from 'fs';
 import {
   OcppServer, OcppClientConnection, BootNotificationRequest, BootNotificationResponse,
 } from '../src';
+import StatusCode from 'status-code-enum';
 
 const cs = new OcppServer(30000);
 cs.on('connection', (client: OcppClientConnection) => {
@@ -21,7 +22,7 @@ cs.on('connection', (client: OcppClientConnection) => {
   });
 });
 
-cs.on('authorization', (cbId: string, req: IncomingMessage, cb: (err?: Error) => void) => {
+cs.on('authorization', (cbId: string, req: IncomingMessage, cb: (status?: StatusCode) => void) => {
   console.log('authorization', cbId, req.headers.authorization);
   // validate authorization header
   // cb(new Error('Unathorized')); // Deny
