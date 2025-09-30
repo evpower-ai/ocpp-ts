@@ -8,17 +8,17 @@ describe('OcppProtocol', () => {
     expect(cpId).toBe('CP5612');
   });
 
-  it('should extract cp and decode correctly', () => {
+  test('should extract cp and decode correctly', () => {
     const cpId = Server.getCpIdFromUrl('ws://eparking.fi/ocpp/service/CP%205612')
     expect(cpId).toBe('CP 5612');
   });
 
-  it('should strip query parameters from uri', () => {
+  test('should strip query parameters from uri', () => {
     const cpId = Server.getCpIdFromUrl('ws://sub.eparking.fi/ocpp/service/CP%205612?foo=bar')
     expect(cpId).toBe('CP 5612');
   });
 
-  it('should return undefined cp id if provided with undefined input', () => {
+  test('should return undefined cp id if provided with undefined input', () => {
     const cpId = Server.getCpIdFromUrl(undefined)
     expect(cpId).toBe(undefined);
   });

@@ -12,15 +12,15 @@ import {
 } from "../src/impl/OcppError";
 
 describe('OcppSchema', () => {
-  it('should throw format violation', () => {
+  test('should throw format violation', () => {
     const validator = new SchemaValidator(BootNotification);
     const t = () => {
-      validator.validate({test: 'foo'})
+      validator.validate({ test: 'foo' })
     }
     expect(t).toThrow(ERROR_FORMATIONVIOLATION)
   });
 
-  it('should throw type contstrain violation', () => {
+  test('should throw type contstrain violation', () => {
     const validator = new SchemaValidator(BootNotification);
     const t = () => {
       validator.validate({
@@ -31,7 +31,7 @@ describe('OcppSchema', () => {
     expect(t).toThrow(ERROR_TYPECONSTRAINTVIOLATION)
   });
 
-  it('should throw property constrain violation for long string', () => {
+  test('should throw property constrain violation for long string', () => {
     const validator = new SchemaValidator(BootNotification);
     const t = () => {
       validator.validate({
@@ -42,7 +42,7 @@ describe('OcppSchema', () => {
     expect(t).toThrow(ERROR_PROPERTYCONSTRAINTVIOLATION)
   });
 
-  it('should throw protocol error for missing required attribute', () => {
+  test('should throw protocol error for missing required attribute', () => {
     const validator = new SchemaValidator(BootNotification);
     const t = () => {
       validator.validate({
@@ -52,7 +52,7 @@ describe('OcppSchema', () => {
     expect(t).toThrow(ERROR_PROTOCOLERROR)
   });
 
-  it('should throw property violation for invalid enum value', () => {
+  test('should throw property violation for invalid enum value', () => {
     const validator = new SchemaValidator(ChangeAvailability);
     const t = () => {
       validator.validate({
@@ -63,7 +63,7 @@ describe('OcppSchema', () => {
     expect(t).toThrow(ERROR_PROPERTYCONSTRAINTVIOLATION)
   });
 
-  it('should throw property violation for mispelled unit', () => {
+  test('should throw property violation for mispelled unit', () => {
     const validator = new SchemaValidator(StopTransaction);
     const t = () => {
       validator.validate({

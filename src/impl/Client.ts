@@ -12,6 +12,8 @@ export class Client extends EventEmitter {
 
   private ws: WebSocket | undefined;
 
+  private terminationReason: string | undefined;
+
   constructor(cpId: string, protocolTimeout = 30000) {
     super();
     this.cpId = cpId;
@@ -63,8 +65,9 @@ export class Client extends EventEmitter {
     });
   }
 
-  public close() {
-    this.connection?.socket.close();
-    this.ws?.close();
-   }
+  public close(code?: number, reason?: string) {
+    this.connection?.socket.close(code, reason);
+    this.ws?.close(code, reason);
+  }
+
 }
