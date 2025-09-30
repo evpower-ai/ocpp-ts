@@ -120,6 +120,7 @@ export class Server extends EventEmitter {
       clearInterval(pingTimerInterval);
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
+      client.emit('close', code, reason);
     });
 
     this.clients.push(client);
