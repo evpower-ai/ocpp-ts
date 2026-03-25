@@ -32,6 +32,7 @@ describe('websocket test', () => {
       });
     });
     await p;
+    server.close();
   });
 
 });

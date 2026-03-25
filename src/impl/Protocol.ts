@@ -70,15 +70,17 @@ export class Protocol {
           request,
           payload]);
         this.socket.send(result);
-        this.pendingCalls[messageId] = {
-          resolve,
-          reject,
-        };
 
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           // timeout error
           this.onCallError(messageId, ERROR_INTERNALERROR, `No response from the client for: ${this.timeout}ms, for ${request}`, {});
         }, this.timeout);
+
+        this.pendingCalls[messageId] = {
+          resolve,
+          reject,
+          timer,
+        };
       } catch (e) {
         console.error(e);
         reject(e);
@@ -106,7 +108,8 @@ export class Protocol {
     errorDetails: any,
   ) {
     if (this.pendingCalls[messageId]) {
-      const { reject } = this.pendingCalls[messageId];
+      const { reject, timer } = this.pendingCalls[messageId];
+      clearTimeout(timer);
       if (reject) {
         reject(new OcppError(errorCode, errorDescription, errorDetails));
       }
@@ -116,7 +119,8 @@ export class Protocol {
 
   private onCallResult(messageId: string, payload: any) {
     if (this.pendingCalls[messageId]) {
-      const { resolve } = this.pendingCalls[messageId];
+      const { resolve, timer } = this.pendingCalls[messageId];
+      clearTimeout(timer);
       if (resolve) {
         resolve(payload);
       }
@@ -131,15 +135,17 @@ export class Protocol {
       const validator = Protocol.validators[request];
       validator.validate(payload);
       const response = await new Promise((resolve, reject) => {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           // timeout error
           reject(new OcppError(ERROR_INTERNALERROR, 'No response from the handler'));
         }, this.timeout);
 
         const hasListener = this.eventEmitter.emit(request, payload, (result: any) => {
+          clearTimeout(timer);
           resolve(result);
         });
         if (!hasListener) {
+          clearTimeout(timer);
           reject(new OcppError(ERROR_NOTIMPLEMENTED, `Listener for action "${request}" not set`));
         }
       });
@@ -157,6 +163,14 @@ export class Protocol {
         );
       }
     }
+  }
+
+  public dispose(): void {
+    Object.keys(this.pendingCalls).forEach((messageId) => {
+      const { timer } = this.pendingCalls[messageId];
+      if (timer) clearTimeout(timer);
+      delete this.pendingCalls[messageId];
+    });
   }
 
   private callResult(messageId: string, action: string, responsePayload: any) {

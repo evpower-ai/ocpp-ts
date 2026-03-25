@@ -12,6 +12,7 @@ import StatusCode from "status-code-enum";
 const DEFAULT_PING_INTERVAL = 30; // seconds
 export class Server extends EventEmitter {
   private server: httpServer | undefined;
+  private wss: WebSocketServer | undefined;
 
   private clients: Array<Client> = [];
 
@@ -34,7 +35,7 @@ export class Server extends EventEmitter {
       this.server = createHttpServer();
     }
 
-    const wss = new WebSocketServer({
+    this.wss = new WebSocketServer({
       noServer: true,
       handleProtocols: (protocols: Set<string>) => {
         if (protocols.has(OCPP_PROTOCOL_1_6)) {
@@ -44,7 +45,7 @@ export class Server extends EventEmitter {
       },
     });
 
-    wss.on('connection', (ws, req) => this.onNewConnection(ws, req));
+    this.wss.on('connection', (ws, req) => this.onNewConnection(ws, req));
 
     this.server.on('upgrade', (req: IncomingMessage, socket: stream.Duplex, head: Buffer) => {
       const cpId = Server.getCpIdFromUrl(req.url);
@@ -57,14 +58,14 @@ export class Server extends EventEmitter {
             socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
             socket.destroy();
           } else {
-            wss.handleUpgrade(req, socket, head, (ws) => {
-              wss.emit('connection', ws, req);
+            this.wss!.handleUpgrade(req, socket, head, (ws) => {
+              this.wss!.emit('connection', ws, req);
             });
           }
         });
       } else {
-        wss.handleUpgrade(req, socket, head, (ws) => {
-          wss.emit('connection', ws, req);
+        this.wss!.handleUpgrade(req, socket, head, (ws) => {
+          this.wss!.emit('connection', ws, req);
         });
       }
     });
@@ -128,8 +129,18 @@ export class Server extends EventEmitter {
   }
 
   protected close() {
+    // Terminate all WebSocket connections immediately.
+    // terminate() force-closes the socket which synchronously fires the
+    // 'close' event on each socket, ensuring the ping interval is cleared.
+    this.wss?.clients.forEach((ws) => ws.terminate());
+
+    // Close the WebSocket server (stops accepting new connections)
+    this.wss?.close();
+
+    // Close the HTTP server
     this.server?.close();
-    this.clients.forEach((client) => client.close());
+
+    this.clients = [];
   }
 
   static getCpIdFromUrl(url: string | undefined): string | undefined {

@@ -66,6 +66,7 @@ export class Client extends EventEmitter {
   }
 
   public close(code?: number, reason?: string) {
+    this.connection?.dispose();
     this.connection?.socket.close(code, reason);
     this.ws?.close(code, reason);
   }
