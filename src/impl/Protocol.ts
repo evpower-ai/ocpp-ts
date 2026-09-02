@@ -93,7 +93,9 @@ export class Protocol {
       const result = JSON.stringify([CALLERROR_MESSAGE,
         messageId,
         error.code,
-        error.message,
+        // `.info` is the human-readable description (see OcppError); `.message` is
+        // set to `.code` by the Error base constructor, so it is not usable here.
+        error.info ?? error.message,
         error.details || {}]);
       this.socket.send(result);
     } catch (e) {
@@ -140,10 +142,15 @@ export class Protocol {
           reject(new OcppError(ERROR_INTERNALERROR, 'No response from the handler'));
         }, this.timeout);
 
+        const errorCb = (error: any) => {
+          clearTimeout(timer);
+          reject(error instanceof OcppError ? error : new OcppError(ERROR_INTERNALERROR, String(error)));
+        };
+
         const hasListener = this.eventEmitter.emit(request, payload, (result: any) => {
           clearTimeout(timer);
           resolve(result);
-        });
+        }, errorCb);
         if (!hasListener) {
           clearTimeout(timer);
           reject(new OcppError(ERROR_NOTIMPLEMENTED, `Listener for action "${request}" not set`));
