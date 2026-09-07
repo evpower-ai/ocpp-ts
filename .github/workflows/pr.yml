@@ -1,0 +1,59 @@
+
+name: PR - Build & Publish Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://npm.pkg.github.com"
+          cache: "npm"
+          scope: '@evpower-ai'
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm test
+
+      - name: Set pre-release version
+        id: version
+        run: |
+          PKG_NAME=$(node -p "require('./package.json').name")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          VERSION="${BASE_VERSION}-pr.${{ github.event.pull_request.number }}.${SHORT_SHA}"
+          npm version "$VERSION" --no-git-tag-version
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "name=$PKG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Publish pre-release
+        run: npm publish --tag "pr-${{ github.event.pull_request.number }}"
+
+      - name: Comment PR
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          comment-tag: npm-preview
+          message: |
+            **npm preview published!**
+            ```sh
+            npm install ${{ steps.version.outputs.name }}@${{ steps.version.outputs.version }}
+            ```
+            or use the dist-tag (always points to latest PR build):
+            ```sh
+            npm install ${{ steps.version.outputs.name }}@pr-${{ github.event.pull_request.number }}
+            ```
