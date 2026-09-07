@@ -1,5 +1,5 @@
 {
-  "name": "@evpower/ocpp-ts",
+  "name": "@evpower-ai/ocpp-ts",
   "version": "0.5.0",
   "description": "OCPP 1.6: Open Charge Point Protocol",
   "main": "dist/src/index.js",
@@ -50,6 +50,6 @@
     "typescript": "^5.5.4"
   },
   "publishConfig": {
-    "access": "public"
+    "registry": "https://npm.pkg.github.com"
   }
 }

@@ -43,6 +43,8 @@ jobs:
 
       - name: Publish pre-release
         run: npm publish --tag "pr-${{ github.event.pull_request.number }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Comment PR
         uses: thollander/actions-comment-pull-request@v3
