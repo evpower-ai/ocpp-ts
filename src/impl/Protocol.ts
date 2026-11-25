@@ -18,6 +18,11 @@ export class Protocol {
   static validators: { [key: string]: SchemaValidator } = {};
   pendingCalls: any = {};
 
+  // "No response from the handler" timers for incoming calls still awaiting the local handler's cb.
+  private pendingHandlerTimers = new Set<NodeJS.Timeout>();
+
+  private disposed = false;
+
   eventEmitter: EventEmitter;
 
   socket: WebSocket;
@@ -63,6 +68,10 @@ export class Protocol {
 
   public callRequest(request: string, payload: any): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (this.disposed) {
+        reject(new OcppError(ERROR_INTERNALERROR, `Connection closed, cannot send ${request}`));
+        return;
+      }
       try {
         const messageId = uuidv4();
         const result = JSON.stringify([CALL_MESSAGE,
@@ -93,7 +102,9 @@ export class Protocol {
       const result = JSON.stringify([CALLERROR_MESSAGE,
         messageId,
         error.code,
-        error.message,
+        // `.info` is the human-readable description (see OcppError); `.message` is
+        // set to `.code` by the Error base constructor, so it is not usable here.
+        error.info ?? error.message,
         error.details || {}]);
       this.socket.send(result);
     } catch (e) {
@@ -136,16 +147,29 @@ export class Protocol {
       validator.validate(payload);
       const response = await new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
+          this.pendingHandlerTimers.delete(timer);
           // timeout error
           reject(new OcppError(ERROR_INTERNALERROR, 'No response from the handler'));
         }, this.timeout);
+        this.pendingHandlerTimers.add(timer);
+        // Every path that settles this call must go through here, or the timer stays in
+        // pendingHandlerTimers until the connection closes.
+        const releaseTimer = () => {
+          clearTimeout(timer);
+          this.pendingHandlerTimers.delete(timer);
+        };
+
+        const errorCb = (error: any) => {
+          releaseTimer();
+          reject(error instanceof OcppError ? error : new OcppError(ERROR_INTERNALERROR, String(error)));
+        };
 
         const hasListener = this.eventEmitter.emit(request, payload, (result: any) => {
-          clearTimeout(timer);
+          releaseTimer();
           resolve(result);
-        });
+        }, errorCb);
         if (!hasListener) {
-          clearTimeout(timer);
+          releaseTimer();
           reject(new OcppError(ERROR_NOTIMPLEMENTED, `Listener for action "${request}" not set`));
         }
       });
@@ -165,12 +189,23 @@ export class Protocol {
     }
   }
 
+  /**
+   * Release everything tied to this connection. Safe to call more than once.
+   * - Outgoing calls still awaiting a reply are rejected now (instead of hanging, or waiting
+   *   for the response timeout on a socket that can no longer deliver one).
+   * - Incoming calls whose handler never answered have their timeout timers cleared; there is
+   *   no socket left to send the CALLERROR on, so they are simply dropped.
+   */
   public dispose(): void {
+    this.disposed = true;
     Object.keys(this.pendingCalls).forEach((messageId) => {
-      const { timer } = this.pendingCalls[messageId];
+      const { reject, timer } = this.pendingCalls[messageId];
       if (timer) clearTimeout(timer);
       delete this.pendingCalls[messageId];
+      if (reject) reject(new OcppError(ERROR_INTERNALERROR, 'Connection closed before a response was received'));
     });
+    this.pendingHandlerTimers.forEach((timer) => clearTimeout(timer));
+    this.pendingHandlerTimers.clear();
   }
 
   private callResult(messageId: string, action: string, responsePayload: any) {

@@ -59,6 +59,7 @@ import {
 } from './types';
 import { Protocol } from './impl/Protocol';
 import { OutgoingHttpHeaders } from 'node:http';
+import { OcppError } from './impl/OcppError';
 
 export class OcppClientConnection extends Client {
   constructor(cpId: string, protocolTimeout = 30000) {
@@ -82,16 +83,16 @@ export class OcppClientConnection extends Client {
     super.setConnection(connection);
   }
 
-  on(event: 'Authorize', listener: (request: AuthorizeRequest, cb:(response:AuthorizeResponse) => void) => void): this;
-  on(event: 'BootNotification', listener: (request: BootNotificationRequest, cb:(response:BootNotificationResponse) => void) => void): this;
-  on(event: 'DataTransfer', listener: (request: DataTransferRequest, cb:(response:DataTransferResponse) => void) => void): this;
-  on(event: 'DiagnosticsStatusNotification', listener: (request: DiagnosticsStatusNotificationRequest, cb:(response:DiagnosticsStatusNotificationResponse) => void) => void): this;
-  on(event: 'FirmwareStatusNotification', listener: (request: FirmwareStatusNotificationRequest, cb:(response:FirmwareStatusNotificationResponse) => void) => void): this;
-  on(event: 'Heartbeat', listener: (request: HeartbeatRequest, cb:(response:HeartbeatResponse) => void) => void): this;
-  on(event: 'MeterValues', listener: (request: MeterValuesRequest, cb:(response:MeterValuesResponse) => void) => void): this;
-  on(event: 'StartTransaction', listener: (request: StartTransactionRequest, cb:(response:StartTransactionResponse) => void) => void): this;
-  on(event: 'StatusNotification', listener: (request: StatusNotificationRequest, cb:(response:StatusNotificationResponse) => void) => void): this;
-  on(event: 'StopTransaction', listener: (request: StopTransactionRequest, cb:(response:StopTransactionResponse) => void) => void): this;
+  on(event: 'Authorize', listener: (request: AuthorizeRequest, cb:(response:AuthorizeResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'BootNotification', listener: (request: BootNotificationRequest, cb:(response:BootNotificationResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'DataTransfer', listener: (request: DataTransferRequest, cb:(response:DataTransferResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'DiagnosticsStatusNotification', listener: (request: DiagnosticsStatusNotificationRequest, cb:(response:DiagnosticsStatusNotificationResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'FirmwareStatusNotification', listener: (request: FirmwareStatusNotificationRequest, cb:(response:FirmwareStatusNotificationResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'Heartbeat', listener: (request: HeartbeatRequest, cb:(response:HeartbeatResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'MeterValues', listener: (request: MeterValuesRequest, cb:(response:MeterValuesResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'StartTransaction', listener: (request: StartTransactionRequest, cb:(response:StartTransactionResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'StatusNotification', listener: (request: StatusNotificationRequest, cb:(response:StatusNotificationResponse) => void, errorCb: (error: OcppError) => void) => void): this;
+  on(event: 'StopTransaction', listener: (request: StopTransactionRequest, cb:(response:StopTransactionResponse) => void, errorCb: (error: OcppError) => void) => void): this;
   on(event: 'close', listener: (code: number, reason: Buffer) => void): this;
   on(event: 'error', listener: (err: Error) => void): this;
   on(event: string | symbol, listener: (...args: any[]) => void) {

@@ -49,6 +49,7 @@ export class Client extends EventEmitter {
     });
 
     this.ws.on('close', (code: number, reason: Buffer) => {
+      this.connection?.dispose();
       this.setConnection(null);
       this.emit('close', code, reason);
     });

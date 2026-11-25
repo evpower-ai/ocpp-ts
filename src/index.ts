@@ -4,6 +4,7 @@ import { OcppClient } from './OcppClient';
 import { OcppClientConnection } from './OcppClientConnection';
 
 export * from './types';
+export * from './impl/OcppError';
 export {
   OcppServer,
   OcppClientConnection,
