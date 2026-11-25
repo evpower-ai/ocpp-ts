@@ -90,3 +90,22 @@ describe('Protocol.dispose', () => {
     expect(() => protocol.dispose()).not.toThrow();
   });
 });
+
+describe('Protocol errorCb', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  test('an incoming call answered via errorCb is not kept in pendingHandlerTimers', async () => {
+    const { socket, handlers, protocol } = setup();
+    handlers.on('Heartbeat', (_req, _cb, errorCb) => errorCb(new OcppError('NotSupported', 'nope')));
+
+    socket.emit('message', Buffer.from(JSON.stringify([2, 'msg-1', 'Heartbeat', {}])));
+    await Promise.resolve();
+
+    expect(jest.getTimerCount()).toBe(0);
+    expect((protocol as any).pendingHandlerTimers.size).toBe(0);
+  });
+});
