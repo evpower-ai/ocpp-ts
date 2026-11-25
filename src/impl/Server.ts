@@ -87,7 +87,8 @@ export class Server extends EventEmitter {
 
     const client = new OcppClientConnection(cpId);
     client.setHeaders(req.headers);
-    client.setConnection(new Protocol(client, socket, this.protocolTimeout));
+    const protocol = new Protocol(client, socket, this.protocolTimeout);
+    client.setConnection(protocol);
 
     let isAlive = true;
     socket.on('pong', () => {
@@ -119,6 +120,7 @@ export class Server extends EventEmitter {
 
     socket.on('close', (code: number, reason: Buffer) => {
       clearInterval(pingTimerInterval);
+      protocol.dispose();
       const index = this.clients.indexOf(client);
       this.clients.splice(index, 1);
       client.emit('close', code, reason);
