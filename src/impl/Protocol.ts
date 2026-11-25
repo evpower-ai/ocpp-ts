@@ -160,7 +160,7 @@ export class Protocol {
         };
 
         const errorCb = (error: any) => {
-          clearTimeout(timer);
+          releaseTimer();
           reject(error instanceof OcppError ? error : new OcppError(ERROR_INTERNALERROR, String(error)));
         };
 
